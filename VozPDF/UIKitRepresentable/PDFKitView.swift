@@ -14,7 +14,8 @@ import PDFKit
 struct PDFKitView: UIViewRepresentable {
     
     /// Documento PDF que será exibido
-    let pdfDocument: PDFDocument?
+    let document: PDFDocument
+    @Binding var selection: PDFSelection?
 
     // MARK: - UIViewRepresentable
     
@@ -23,9 +24,9 @@ struct PDFKitView: UIViewRepresentable {
     /// - Returns: instância do PDFView configurada
     func makeUIView(context: Context) -> PDFView {
         let pdfView = PDFView()
-        pdfView.autoScales = true // Ajusta automaticamente o PDF para caber na tela
-        pdfView.displayMode = .singlePageContinuous // Exibe páginas em fluxo contínuo
-        pdfView.displayDirection = .vertical // Scroll vertical
+        pdfView.autoScales = true
+        pdfView.displayMode = .singlePageContinuous
+        pdfView.displayDirection = .vertical
         return pdfView
     }
 
@@ -33,7 +34,11 @@ struct PDFKitView: UIViewRepresentable {
     /// - Parameters:
     ///   - uiView: PDFView existente
     ///   - context: contexto do SwiftUI
-    func updateUIView(_ uiView: PDFView, context: Context) {
-        uiView.document = pdfDocument
+    func updateUIView(_ pdfView: PDFView, context: Context) {
+        pdfView.document = document
+        if let selection = selection {
+            pdfView.setCurrentSelection(selection, animate: true)
+            pdfView.scrollSelectionToVisible(self)
+        }
     }
 }

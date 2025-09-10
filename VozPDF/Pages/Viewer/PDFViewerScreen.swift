@@ -18,8 +18,11 @@ struct PDFViewerScreen: View {
             if let url = globalViewModel.pdfURL, let doc = PDFDocument(url: url) {
                
                 ZStack(alignment: .bottom) {
-                    PDFKitView(pdfDocument: doc)
+                    PDFKitView(document: doc, selection: $globalViewModel.selection)
                         .edgesIgnoringSafeArea(.all)
+                        .onAppear {
+                            globalViewModel.document = doc
+                        }
 
                     HStack(spacing: 10) {
                         
@@ -27,30 +30,36 @@ struct PDFViewerScreen: View {
                             globalViewModel.speakPDF()
                         } label: {
                             Text("Começar a leitura")
-                        }
-                        
-                        if globalViewModel.showPauseButton {
-                            // Pausar/Retomar
-                            Button(action: {
-                                if globalViewModel.synthesizer.isSpeaking && !globalViewModel.synthesizer.isPaused {
-                                    globalViewModel.synthesizer.pauseSpeaking(at: .word)
-                                    globalViewModel.isPaused = true
-                                } else if globalViewModel.synthesizer.isPaused {
-                                    globalViewModel.synthesizer.continueSpeaking()
-                                    globalViewModel.isPaused = false
-                                }
-                            }) {
-                                HStack {
-                                    Image(systemName: "playpause")
-                                    Text(!globalViewModel.isPaused ? "Pausar" : "Retomar")
-                                }
                                 .frame(maxWidth: .infinity)
                                 .padding()
-                                .background(Color.orange)
+                                .background(Color.blue)
                                 .foregroundColor(.white)
                                 .cornerRadius(10)
-                            }
                         }
+                        
+//                        if globalViewModel.showPauseButton {
+//                            // Pausar/Retomar
+//                            Button(action: {
+//                                if globalViewModel.synthesizer.isSpeaking && !globalViewModel.synthesizer.isPaused {
+//                                    globalViewModel.synthesizer.pauseSpeaking(at: .word)
+//                                    globalViewModel.isPaused = true
+//                                } else if globalViewModel.synthesizer.isPaused {
+//                                    globalViewModel.synthesizer.continueSpeaking()
+//                                    globalViewModel.isPaused = false
+//                                }
+//                            }) {
+//                                HStack {
+//                                    Image(systemName: "playpause")
+//                                    Text(!globalViewModel.isPaused ? "Pausar" : "Retomar")
+//                                }
+//                                .frame(maxWidth: .infinity)
+//                                .padding()
+//                                .background(Color.orange)
+//                                .foregroundColor(.white)
+//                                .cornerRadius(10)
+//                            }
+//                            .transaction { t in t.animation = nil }
+//                        }
                         
                     }
                     .padding(.horizontal)

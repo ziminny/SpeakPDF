@@ -19,7 +19,7 @@ struct HomeScreen: View {
             VStack(spacing: 0) {
                 
                 // MARK: Banner de propaganda
-                BannerContentView(navigationTitle: "Banner")
+                BannerContentView(navigationTitle: "VozPDF")
                 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {

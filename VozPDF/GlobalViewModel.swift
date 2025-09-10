@@ -8,14 +8,19 @@
 import Foundation
 import AVFAudio
 import PDFKit
+import SwiftUI
 
 /// ViewModel global responsável por gerenciar o estado da aplicação
 /// relacionada à leitura de PDFs com voz.
 /// Contém informações sobre PDF atual, sintetizador de voz, idioma,
 /// velocidade da fala, locutores disponíveis e controle de UI.
-class GlobalViewModel: ObservableObject {
+class GlobalViewModel: NSObject, ObservableObject {
     
     // MARK: - Propriedades
+    
+    @Published var selection: PDFSelection?
+    var document: PDFDocument?
+    private var fullText: String = ""
     
     /// Lista de todas as vozes disponíveis no dispositivo
     let availableVoices = AVSpeechSynthesisVoice.speechVoices()
@@ -47,6 +52,8 @@ class GlobalViewModel: ObservableObject {
     /// Indica se a fala está atualmente pausada
     @Published var isPaused = false
     
+    var pageCaches: [PDFPageCache] = []
+    
     // MARK: - Computed Properties
     
     /// Lista de locutores disponíveis para o idioma atualmente selecionado
@@ -58,8 +65,10 @@ class GlobalViewModel: ObservableObject {
     
     /// Inicializa o ViewModel, selecionando automaticamente o idioma
     /// que corresponde à região do dispositivo, ou "en-US" como padrão.
-    init() {
+    override init() {
         selectedIdioma = availableVoices.first { $0.language.hasSuffix(Locale.current.language.region?.identifier ?? "") }?.language ?? "en-US"
+        super.init()
+        synthesizer.delegate = self
     }
     
     // MARK: - Métodos
@@ -80,6 +89,10 @@ class GlobalViewModel: ObservableObject {
         guard let document = PDFDocument(url: pdfURL) else {
             print("Não foi possível abrir o PDF")
             return
+        }
+        
+        if pageCaches.isEmpty {
+            preparePDF(for: document)
         }
         
         // Extrai o texto completo do PDF
@@ -119,7 +132,52 @@ class GlobalViewModel: ObservableObject {
         synthesizer.speak(utterance)
         
         // Mostra o botão de pausa na UI
-        showPauseButton = true
+        withAnimation(nil) {
+            //showPauseButton = true
+        }
     }
     
+}
+
+extension GlobalViewModel: AVSpeechSynthesizerDelegate {
+    
+    func preparePDF(for document: PDFDocument) {
+        pageCaches.removeAll()
+        for i in 0..<document.pageCount {
+            if let page = document.page(at: i),
+               let pageText = page.string {
+                pageCaches.append(PDFPageCache(page: page, text: pageText as NSString))
+            }
+        }
+    }
+    
+    // Delegate que informa qual trecho está sendo lido
+    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer,
+                           willSpeakRangeOfSpeechString characterRange: NSRange,
+                           utterance: AVSpeechUtterance) {
+        
+        let nsText = utterance.speechString as NSString
+        let substring = nsText.substring(with: characterRange)
+        
+        for cache in pageCaches {
+            let pageText = cache.text
+            let range = pageText.range(of: substring, options: .caseInsensitive)
+            
+            if range.location != NSNotFound {
+                if let selection = cache.page.selection(for: range) {
+                    DispatchQueue.main.async {
+                        self.selection = selection
+                    }
+                }
+                break
+            }
+        }
+    }
+
+    
+}
+
+struct PDFPageCache {
+    let page: PDFPage
+    let text: NSString
 }
